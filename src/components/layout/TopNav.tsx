@@ -42,6 +42,7 @@ export function TopNav() {
     { name: 'Create Agent', href: '/create-agent' },
     { name: 'Connect Services', href: '/connect-services' },
     { name: 'Agent Logs', href: '/agent-logs' },
+    
   ];
 
   const isActive = (href: string) => location.pathname === href;
