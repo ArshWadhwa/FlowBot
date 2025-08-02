@@ -1,10 +1,13 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { logApiError } from '@/lib/utils';
+import { GoogleAuthService } from '@/services/authService';
 
 export function useApi() {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const googleAuthService = new GoogleAuthService();
 
   const callFunction = useCallback(async (functionName: string, body?: any, method: string = 'POST') => {
     try {
@@ -97,8 +100,33 @@ export function useApi() {
 
   // Google OAuth
   const startGoogleOAuth = useCallback(async () => {
-    return await callFunction('google-oauth/start', null, 'GET');
-  }, [callFunction]);
+    try {
+      const authUrl = googleAuthService.getAuthUrl();
+      return { url: authUrl };
+    } catch (error) {
+      console.error('Error starting Google OAuth:', error);
+      throw error;
+    }
+  }, [googleAuthService]);
+
+  const exchangeGoogleCode = useCallback(async (code: string) => {
+    setLoading(true);
+    try {
+      const tokens = await googleAuthService.getTokensFromCode(code);
+      
+      // Store tokens securely (in a real app, consider more secure storage)
+      localStorage.setItem('gmailAccessToken', tokens.accessToken);
+      localStorage.setItem('gmailRefreshToken', tokens.refreshToken);
+      localStorage.setItem('gmailTokenExpiry', String(Date.now() + tokens.expiresIn * 1000));
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error exchanging code:', error);
+      return { success: false, error };
+    } finally {
+      setLoading(false);
+    }
+  }, [googleAuthService]);
 
   // Workflow Templates
   const getWorkflowTemplates = useCallback(async (category?: string, triggerType?: string) => {
@@ -148,6 +176,7 @@ export function useApi() {
     
     // OAuth
     startGoogleOAuth,
+    exchangeGoogleCode,
     
     // Workflow Templates
     getWorkflowTemplates,

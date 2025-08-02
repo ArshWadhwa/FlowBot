@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-// Replace with your actual credentials
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
-const GOOGLE_CLIENT_SECRET = 'YOUR_GOOGLE_CLIENT_SECRET';
-const REDIRECT_URI = 'http://localhost:8080/auth/google/callback';
+// Use environment variables instead of hardcoded secrets
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET || '';
+const REDIRECT_URI = import.meta.env.VITE_GOOGLE_REDIRECT_URI || 'https://fifvgsxcflsfrwamfroy.supabase.co/functions/v1/google-oauth/callback';
 
 // Scopes needed for Gmail access
 const GMAIL_SCOPES = [

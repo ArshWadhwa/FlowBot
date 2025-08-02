@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GoogleAuthService } from '@/services/authService';
 import { useToast } from '@/hooks/use-toast';
+import { useApi } from '@/hooks/useApi';
 
 export default function AuthCallback() {
   const [status, setStatus] = useState('Processing authentication...');
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { exchangeGoogleCode } = useApi();
   
   useEffect(() => {
     async function handleCallback() {
@@ -21,23 +22,25 @@ export default function AuthCallback() {
       
       try {
         // Exchange code for tokens
-        const googleAuthService = new GoogleAuthService();
-        const { accessToken, refreshToken, expiresIn } = await googleAuthService.getTokensFromCode(code);
+        const result = await exchangeGoogleCode(code);
         
-        // Store tokens securely (in a real app, you'd use a more secure storage method)
-        localStorage.setItem('gmailAccessToken', accessToken);
-        localStorage.setItem('gmailRefreshToken', refreshToken);
-        localStorage.setItem('gmailTokenExpiry', String(Date.now() + expiresIn * 1000));
-        
-        // Success!
-        toast({
-          title: "Gmail Connected",
-          description: "Your Gmail account has been successfully connected",
-        });
-        
-        // Redirect back to the page they were on
-        const redirectPath = localStorage.getItem('redirectAfterAuth') || '/settings';
-        navigate(redirectPath);
+        if (result.success) {
+          // Success notification
+          toast({
+            title: "Gmail Connected",
+            description: "Your Gmail account has been successfully connected",
+          });
+          
+          // Close the popup if in a popup window
+          if (window.opener) {
+            window.close();
+          } else {
+            // Or redirect to settings page
+            navigate('/settings');
+          }
+        } else {
+          throw new Error('Failed to authenticate');
+        }
       } catch (error) {
         console.error('Authentication error:', error);
         setStatus('Authentication failed. Please try again.');
@@ -54,7 +57,7 @@ export default function AuthCallback() {
     }
     
     handleCallback();
-  }, [navigate, toast]);
+  }, [navigate, toast, exchangeGoogleCode]);
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

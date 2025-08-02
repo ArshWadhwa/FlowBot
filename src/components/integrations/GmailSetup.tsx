@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, CheckCircle, AlertCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,18 @@ export function GmailSetup() {
   const [emailFilter, setEmailFilter] = useState('');
   const { toast } = useToast();
   const { startGoogleOAuth, connectService } = useApi();
+
+  // Check if already connected on component mount
+  useEffect(() => {
+    const accessToken = localStorage.getItem('gmailAccessToken');
+    if (accessToken) {
+      // Check if token is still valid
+      const expiry = Number(localStorage.getItem('gmailTokenExpiry') || '0');
+      if (expiry > Date.now()) {
+        setIsConnected(true);
+      }
+    }
+  }, []);
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -35,18 +47,23 @@ export function GmailSetup() {
             // Check if connection was successful
             setTimeout(async () => {
               try {
-                await connectService({
-                  service_type: 'gmail',
-                  config: {
-                    scopes: ['https://www.googleapis.com/auth/gmail.readonly'],
-                    filters: emailFilter ? [emailFilter] : []
-                  }
-                });
-                setIsConnected(true);
-                toast({
-                  title: "Gmail Connected!",
-                  description: "Your Gmail account is now connected and ready to use.",
-                });
+                const accessToken = localStorage.getItem('gmailAccessToken');
+                if (accessToken) {
+                  await connectService({
+                    service_type: 'gmail',
+                    config: {
+                      scopes: ['https://www.googleapis.com/auth/gmail.readonly'],
+                      filters: emailFilter ? [emailFilter] : []
+                    }
+                  });
+                  setIsConnected(true);
+                  toast({
+                    title: "Gmail Connected!",
+                    description: "Your Gmail account is now connected and ready to use.",
+                  });
+                } else {
+                  throw new Error("Authentication failed");
+                }
               } catch (error) {
                 toast({
                   title: "Connection Failed",
