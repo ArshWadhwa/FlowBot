@@ -1,10 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { motion } from 'framer-motion';
+import { X, Mail, Brain, FileText, Webhook } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface NodeConfigModalProps {
   isOpen: boolean;
@@ -14,246 +27,222 @@ interface NodeConfigModalProps {
 }
 
 export function NodeConfigModal({ isOpen, onClose, nodeData, onSave }: NodeConfigModalProps) {
-  const [config, setConfig] = useState(nodeData?.config || {});
+  const [config, setConfig] = useState<any>({});
 
   useEffect(() => {
-    setConfig(nodeData?.config || {});
+    if (nodeData?.config) {
+      setConfig(nodeData.config);
+    } else {
+      // Set default config based on node type
+      setConfig(getDefaultConfig(nodeData?.service, nodeData?.label));
+    }
   }, [nodeData]);
+
+  const getDefaultConfig = (service: string, label: string) => {
+    switch (service?.toLowerCase()) {
+      case 'gmail':
+        return {
+          checkInterval: 'hourly',
+          emailFilter: '',
+          markAsRead: false,
+          maxEmails: 10
+        };
+      case 'llm':
+        return {
+          prompt: 'Summarize this email content and extract key information.',
+          model: 'gpt-3.5-turbo',
+          maxTokens: 500,
+          temperature: 0.7
+        };
+      case 'notion':
+        return {
+          databaseId: '',
+          titleTemplate: '{{subject}}',
+          contentTemplate: '{{summary}}',
+          tags: []
+        };
+      default:
+        return {};
+    }
+  };
 
   const handleSave = () => {
     onSave(config);
     onClose();
   };
 
-  const renderConfigForm = () => {
-    const service = nodeData?.service?.toLowerCase();
+  const renderGmailConfig = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="check-interval">Check Interval</Label>
+        <Select 
+          value={config.checkInterval} 
+          onValueChange={(value) => setConfig({...config, checkInterval: value})}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="5min">Every 5 minutes</SelectItem>
+            <SelectItem value="15min">Every 15 minutes</SelectItem>
+            <SelectItem value="hourly">Every hour</SelectItem>
+            <SelectItem value="daily">Daily</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="email-filter">Email Filter</Label>
+        <Input
+          id="email-filter"
+          placeholder="e.g., subject:invoice OR from:client@company.com"
+          value={config.emailFilter || ''}
+          onChange={(e) => setConfig({...config, emailFilter: e.target.value})}
+        />
+        <p className="text-xs text-muted-foreground">
+          Use Gmail search syntax to filter emails
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="max-emails">Maximum Emails per Check</Label>
+        <Input
+          id="max-emails"
+          type="number"
+          min="1"
+          max="50"
+          value={config.maxEmails || 10}
+          onChange={(e) => setConfig({...config, maxEmails: parseInt(e.target.value)})}
+        />
+      </div>
+    </div>
+  );
+
+  const renderLLMConfig = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="prompt">AI Prompt</Label>
+        <Textarea
+          id="prompt"
+          placeholder="Enter your prompt for processing the email..."
+          value={config.prompt || ''}
+          onChange={(e) => setConfig({...config, prompt: e.target.value})}
+          rows={4}
+        />
+        <p className="text-xs text-muted-foreground">
+          Use {'{subject}'}, {'{body}'}, {'{from}'} to reference email data
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="model">AI Model</Label>
+        <Select 
+          value={config.model} 
+          onValueChange={(value) => setConfig({...config, model: value})}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+            <SelectItem value="gpt-4">GPT-4</SelectItem>
+            <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="max-tokens">Max Tokens</Label>
+          <Input
+            id="max-tokens"
+            type="number"
+            min="100"
+            max="2000"
+            value={config.maxTokens || 500}
+            onChange={(e) => setConfig({...config, maxTokens: parseInt(e.target.value)})}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="temperature">Temperature</Label>
+          <Input
+            id="temperature"
+            type="number"
+            min="0"
+            max="1"
+            step="0.1"
+            value={config.temperature || 0.7}
+            onChange={(e) => setConfig({...config, temperature: parseFloat(e.target.value)})}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderNotionConfig = () => {
+    // Initialize variables with safe default values
+    const titleTemplate = config?.titleTemplate || 'Summary: {{email_subject}}';
     
-    switch (service) {
-      case 'gmail':
-        if (nodeData?.type === 'trigger') {
-          return (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="subject-filter">Subject Filter</Label>
-                <Input
-                  id="subject-filter"
-                  placeholder="e.g., invoice, report"
-                  value={config.subjectFilter || ''}
-                  onChange={(e) => setConfig({ ...config, subjectFilter: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="sender-filter">Sender Filter (Optional)</Label>
-                <Input
-                  id="sender-filter"
-                  placeholder="e.g., billing@company.com"
-                  value={config.senderFilter || ''}
-                  onChange={(e) => setConfig({ ...config, senderFilter: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="check-interval">Check Interval</Label>
-                <Select value={config.checkInterval || 'hourly'} onValueChange={(value) => setConfig({ ...config, checkInterval: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5min">Every 5 minutes</SelectItem>
-                    <SelectItem value="hourly">Every hour</SelectItem>
-                    <SelectItem value="daily">Daily</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          );
-        } else {
-          return (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="recipient">Recipient Email</Label>
-                <Input
-                  id="recipient"
-                  placeholder="recipient@example.com"
-                  value={config.recipient || ''}
-                  onChange={(e) => setConfig({ ...config, recipient: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="subject">Subject Template</Label>
-                <Input
-                  id="subject"
-                  placeholder="{{subject}} - Processed"
-                  value={config.subject || ''}
-                  onChange={(e) => setConfig({ ...config, subject: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="body">Email Body Template</Label>
-                <Textarea
-                  id="body"
-                  placeholder="Content: {{content}}"
-                  value={config.body || ''}
-                  onChange={(e) => setConfig({ ...config, body: e.target.value })}
-                />
-              </div>
-            </div>
-          );
-        }
-      
-      case 'llm':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="prompt">AI Prompt Template</Label>
-              <Textarea
-                id="prompt"
-                placeholder="Summarize this email: {{content}}"
-                value={config.prompt || ''}
-                onChange={(e) => setConfig({ ...config, prompt: e.target.value })}
-                rows={4}
-              />
-            </div>
-            <div>
-              <Label htmlFor="model">AI Model</Label>
-              <Select value={config.model || 'gpt-4o-mini'} onValueChange={(value) => setConfig({ ...config, model: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                  <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                  <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
-                  <SelectItem value="llama-3.1-8b">Llama 3.1 8B</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="max-tokens">Max Tokens</Label>
-              <Input
-                id="max-tokens"
-                type="number"
-                placeholder="1000"
-                value={config.maxTokens || ''}
-                onChange={(e) => setConfig({ ...config, maxTokens: parseInt(e.target.value) })}
-              />
-            </div>
-          </div>
-        );
-      
-      case 'notion':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="database-id">Notion Database ID</Label>
-              <Input
-                id="database-id"
-                placeholder="32-character database ID"
-                value={config.databaseId || ''}
-                onChange={(e) => setConfig({ ...config, databaseId: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="title-template">Page Title Template</Label>
-              <Input
-                id="title-template"
-                placeholder="Summary: {{date}}"
-                value={config.titleTemplate || ''}
-                onChange={(e) => setConfig({ ...config, titleTemplate: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="content-template">Content Template</Label>
-              <Textarea
-                id="content-template"
-                placeholder="{{summary}}"
-                value={config.contentTemplate || ''}
-                onChange={(e) => setConfig({ ...config, contentTemplate: e.target.value })}
-              />
-            </div>
-          </div>
-        );
-      
-      case 'telegram':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="chat-id">Chat ID</Label>
-              <Input
-                id="chat-id"
-                placeholder="Chat ID or @username"
-                value={config.chatId || ''}
-                onChange={(e) => setConfig({ ...config, chatId: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="message-template">Message Template</Label>
-              <Textarea
-                id="message-template"
-                placeholder="Alert: {{content}}"
-                value={config.messageTemplate || ''}
-                onChange={(e) => setConfig({ ...config, messageTemplate: e.target.value })}
-              />
-            </div>
-          </div>
-        );
-      
-      case 'webhook':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="webhook-url">Webhook URL</Label>
-              <Input
-                id="webhook-url"
-                placeholder="https://api.example.com/webhook"
-                value={config.webhookUrl || ''}
-                onChange={(e) => setConfig({ ...config, webhookUrl: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="method">HTTP Method</Label>
-              <Select value={config.method || 'POST'} onValueChange={(value) => setConfig({ ...config, method: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="POST">POST</SelectItem>
-                  <SelectItem value="PUT">PUT</SelectItem>
-                  <SelectItem value="PATCH">PATCH</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="payload-template">Payload Template (JSON)</Label>
-              <Textarea
-                id="payload-template"
-                placeholder='{"data": "{{content}}"}'
-                value={config.payloadTemplate || ''}
-                onChange={(e) => setConfig({ ...config, payloadTemplate: e.target.value })}
-              />
-            </div>
-          </div>
-        );
-      
-      default:
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="custom-config">Configuration (JSON)</Label>
-              <Textarea
-                id="custom-config"
-                placeholder='{"key": "value"}'
-                value={JSON.stringify(config, null, 2)}
-                onChange={(e) => {
-                  try {
-                    setConfig(JSON.parse(e.target.value));
-                  } catch {
-                    // Invalid JSON, ignore
-                  }
-                }}
-              />
-            </div>
-          </div>
-        );
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="database-id">Notion Database ID</Label>
+          <Input
+            id="database-id"
+            placeholder="Paste your Notion database ID here"
+            value={config.databaseId || ''}
+            onChange={(e) => setConfig({...config, databaseId: e.target.value})}
+          />
+          <p className="text-xs text-muted-foreground">
+            Copy the database ID from your Notion database URL
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="title-template">Page Title Template</Label>
+          <Input
+            id="title-template"
+            placeholder="e.g., Summary: {{email_subject}}"
+            value={titleTemplate}
+            onChange={(e) => setConfig({...config, titleTemplate: e.target.value})}
+          />
+          <p className="text-xs text-muted-foreground">
+            Use {'{{email_subject}}'} as placeholder for email subject
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="content-template">Page Content Template</Label>
+          <Textarea
+            id="content-template"
+            placeholder="e.g., {{summary}}\n\nAction Items:\n{{actionItems}}"
+            value={config.contentTemplate || ''}
+            onChange={(e) => setConfig({...config, contentTemplate: e.target.value})}
+            rows={3}
+          />
+          <p className="text-xs text-muted-foreground">
+            Use {'{{summary}}'}, {'{{actionItems}}'}, {'{{priority}}'}, {'{{tags}}'} from AI output
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  const getIcon = () => {
+    switch (nodeData?.service?.toLowerCase()) {
+      case 'gmail': return <Mail className="h-5 w-5" />;
+      case 'llm': return <Brain className="h-5 w-5" />;
+      case 'notion': return <FileText className="h-5 w-5" />;
+      default: return <Webhook className="h-5 w-5" />;
+    }
+  };
+
+  const renderConfigContent = () => {
+    switch (nodeData?.service?.toLowerCase()) {
+      case 'gmail': return renderGmailConfig();
+      case 'llm': return renderLLMConfig();
+      case 'notion': return renderNotionConfig();
+      default: return <p>No configuration available for this node type.</p>;
     }
   };
 
@@ -261,25 +250,30 @@ export function NodeConfigModal({ isOpen, onClose, nodeData, onSave }: NodeConfi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>
-            Configure {nodeData.label}
+          <DialogTitle className="flex items-center space-x-2">
+            {getIcon()}
+            <span>Configure {nodeData.label}</span>
           </DialogTitle>
         </DialogHeader>
-        
-        <div className="py-4">
-          {renderConfigForm()}
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>
-            Save Configuration
-          </Button>
-        </DialogFooter>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6"
+        >
+          {renderConfigContent()}
+
+          <div className="flex justify-end space-x-2 pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} className="gradient-primary">
+              Save Configuration
+            </Button>
+          </div>
+        </motion.div>
       </DialogContent>
     </Dialog>
   );

@@ -13,6 +13,7 @@ import ConnectServices from "./pages/ConnectServices";
 import AgentLogs from "./pages/AgentLogs";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import AuthCallback from "./pages/AuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
                 <Settings />
               </ProtectedRoute>
             } />
+            <Route path="/auth/google/callback" element={<AuthCallback />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

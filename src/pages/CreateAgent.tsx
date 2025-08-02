@@ -126,21 +126,8 @@ const nodeTypes = {
   action: WorkflowNode,
 };
 
-const initialNodes: Node[] = [
-  {
-    id: '1',
-    type: 'trigger',
-    position: { x: 100, y: 100 },
-    data: { 
-      label: 'Gmail Trigger',
-      service: 'Gmail',
-      type: 'trigger',
-      config: { condition: 'New email with "invoice" in subject' }
-    },
-  },
-];
-
-const initialEdges: Edge[] = [];
+const initialNodes: Node[] = []; // Start with an empty canvas
+const initialEdges: Edge[] = []; // No default connections
 
 export default function CreateAgent() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -235,7 +222,11 @@ export default function CreateAgent() {
   };
 
   const onNodeClick = (_event: React.MouseEvent, node: Node) => {
-    setSelectedNode(node);
+    // Prevent redirection or blank page issue
+    if (node.data.type === 'action' || node.data.type === 'trigger') {
+      setSelectedNode(node);
+      setIsConfigModalOpen(true); // Open configuration modal
+    }
   };
 
   const validateWorkflow = () => {
@@ -296,11 +287,9 @@ export default function CreateAgent() {
     }
 
     try {
-      // Prepare agent data for backend
       const triggerNode = nodes.find(n => n.data.type === 'trigger');
       const actionNodes = nodes.filter(n => n.data.type === 'action');
-      
-      // Create workflow structure matching backend expectations
+
       const workflowSteps = actionNodes.map((node, index) => ({
         id: node.id,
         type: 'action',
@@ -312,7 +301,7 @@ export default function CreateAgent() {
 
       const agentData = {
         name: agentName,
-        description: `Automated workflow with ${actionNodes.length} action(s)`,
+        description: `Workflow: Gmail → LLM → Notion`,
         trigger_type: String(triggerNode?.data.service || 'scheduler').toLowerCase(),
         trigger_config: triggerNode?.data.config || {},
         workflow_steps: workflowSteps,
@@ -323,28 +312,25 @@ export default function CreateAgent() {
         status: 'active'
       };
 
-      console.log('Creating agent with data:', agentData);
-      
       const result = await createAgent(agentData);
-      
+
       if (result) {
         addAgent({
           name: agentName,
           status: 'active',
-          description: `Automated workflow with ${actionNodes.length} action(s)`,
+          description: `Workflow: Gmail → LLM → Notion`,
           workflow: { nodes, edges }
         });
-        
+
         toast({
           title: "Agent created successfully!",
           description: `${agentName} has been saved and is ready to use.`,
         });
-        
+
         // Navigate to dashboard after success
         navigate('/dashboard');
       }
     } catch (error: any) {
-      console.error('Failed to create agent:', error);
       toast({
         title: "Failed to save agent",
         description: error.message || "Please check your configuration and try again.",

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logApiError } from '@/lib/utils';
 
 export function useApi() {
   const { toast } = useToast();
@@ -12,7 +13,7 @@ export function useApi() {
         throw new Error('Not authenticated - please sign in');
       }
 
-      console.log(`Calling function: ${functionName}`, { body, method });
+      console.log(`🚀 Calling function: ${functionName}`, { body, method });
 
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: body || null,
@@ -23,19 +24,27 @@ export function useApi() {
       });
 
       if (error) {
-        console.error(`Function ${functionName} error:`, error);
+        console.error(`❌ Function ${functionName} error:`, error);
+        logApiError(functionName, error);
+        
+        // Provide more specific error messages
+        if (error.message?.includes('500')) {
+          throw new Error(`Server error in ${functionName}. This might be due to missing configuration or database issues.`);
+        }
+        
         throw new Error(error.message || `Function ${functionName} failed`);
       }
 
-      console.log(`Function ${functionName} response:`, data);
+      console.log(`✅ Function ${functionName} response:`, data);
       return data;
     } catch (error: any) {
-      console.error(`Error calling ${functionName}:`, error);
+      console.error(`🔥 Error calling ${functionName}:`, error);
+      logApiError(functionName, error);
       
       // Don't show toast for authentication errors, let the auth system handle it
       if (!error.message?.includes('Not authenticated')) {
         toast({
-          title: 'Error',
+          title: 'API Error',
           description: error.message || 'An unexpected error occurred',
           variant: 'destructive',
         });

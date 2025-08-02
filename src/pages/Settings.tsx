@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   User, 
@@ -39,6 +39,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { TopNav } from '@/components/layout/TopNav';
+import { ServiceConnection } from '@/components/service-connection/ServiceConnection';
+import { PageHeader } from '@/components/ui/page-header';
 
 const container = {
   hidden: { opacity: 0 },
@@ -70,7 +72,20 @@ export default function Settings() {
     slackNotifications: false
   });
 
+  const [isGmailConnected, setIsGmailConnected] = useState(false);
+  const [isNotionConnected, setIsNotionConnected] = useState(false);
+
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check for Gmail connection
+    const gmailAccessToken = localStorage.getItem('gmailAccessToken');
+    setIsGmailConnected(!!gmailAccessToken);
+    
+    // Check for Notion connection
+    const notionApiKey = localStorage.getItem('notionApiKey');
+    setIsNotionConnected(!!notionApiKey);
+  }, []);
 
   const saveProfile = () => {
     // Simulate API call
@@ -385,6 +400,17 @@ export default function Settings() {
           </motion.div>
         </div>
       </motion.div>
+
+      <div className="container py-8">
+        <PageHeader 
+          title="Connection Settings" 
+          description="Connect your accounts to enable automated workflows"
+        />
+        
+        <div className="mt-8">
+          <ServiceConnection />
+        </div>
+      </div>
     </div>
   );
 }
