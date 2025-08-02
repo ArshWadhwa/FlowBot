@@ -1,26 +1,32 @@
 import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Mail, FileText } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { GmailSetup } from '@/components/integrations/GmailSetup';
 
 export function ServiceConnection() {
-  return (
-    <div className="grid gap-6">
-      <GmailSetup />
-      {/* Add other service setup components here */}
-    </div>
-  );
-}
+  const [notionApiKey, setNotionApiKey] = useState('');
   const [isGmailConnected, setIsGmailConnected] = useState(false);
   const [isNotionConnected, setIsNotionConnected] = useState(false);
   const { toast } = useToast();
-  const googleAuthService = new GoogleAuthService();
+
+  useEffect(() => {
+    // Check for Gmail connection
+    const gmailAccessToken = localStorage.getItem('gmailAccessToken');
+    setIsGmailConnected(!!gmailAccessToken);
+    
+    // Check for Notion connection
+    const notionApiKey = localStorage.getItem('notionApiKey');
+    setIsNotionConnected(!!notionApiKey);
+  }, []);
 
   // Connect to Gmail using OAuth
   const connectGmail = () => {
-    // Store the current page URL to return after authentication
-    localStorage.setItem('redirectAfterAuth', window.location.pathname);
-    
-    // Redirect to Google OAuth consent screen
-    window.location.href = googleAuthService.getAuthUrl();
+    // Just use the GmailSetup component instead
+    console.log('Use GmailSetup component for OAuth flow');
   };
 
   // Connect to Notion using API key
@@ -35,10 +41,8 @@ export function ServiceConnection() {
     }
 
     try {
-      // Store the API key in local storage or your secure storage solution
+      // Store the API key in local storage
       localStorage.setItem('notionApiKey', notionApiKey);
-      
-      // You could verify the API key here by making a test API call
       
       setIsNotionConnected(true);
       toast({
@@ -56,45 +60,10 @@ export function ServiceConnection() {
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      {/* Gmail Connection Card */}
-      <Card className={isGmailConnected ? "border-green-500" : ""}>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Mail className="h-5 w-5" />
-            <span>Connect Gmail</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Connect your Gmail account to read emails and trigger workflows based on new messages.
-          </p>
-          
-          {isGmailConnected ? (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2 text-green-500">
-                <span className="text-sm font-medium">Connected</span>
-              </div>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  localStorage.removeItem('gmailAccessToken');
-                  localStorage.removeItem('gmailRefreshToken');
-                  setIsGmailConnected(false);
-                }}
-              >
-                Disconnect
-              </Button>
-            </div>
-          ) : (
-            <Button 
-              onClick={connectGmail}
-              className="w-full"
-            >
-              Connect Gmail Account
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+      {/* Use the GmailSetup component instead of the custom card */}
+      <div>
+        <GmailSetup />
+      </div>
 
       {/* Notion Connection Card */}
       <Card className={isNotionConnected ? "border-green-500" : ""}>
@@ -120,6 +89,37 @@ export function ServiceConnection() {
                   localStorage.removeItem('notionApiKey');
                   setIsNotionConnected(false);
                 }}
+              >
+                Disconnect
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="notion-api-key">Notion API Key</Label>
+                <Input
+                  id="notion-api-key"
+                  value={notionApiKey}
+                  onChange={(e) => setNotionApiKey(e.target.value)}
+                  placeholder="Enter your Notion API key"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Get your API key from the <a href="https://www.notion.so/my-integrations" target="_blank" className="underline">Notion Integrations page</a>
+                </p>
+              </div>
+              <Button 
+                onClick={connectNotion}
+                className="w-full"
+              >
+                Connect Notion
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
               >
                 Disconnect
               </Button>
