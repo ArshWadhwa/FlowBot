@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { GoogleAuthService } from '@/services/authService';
-import { Mail, FileText } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from 'react';
+import { GmailSetup } from '@/components/integrations/GmailSetup';
 
 export function ServiceConnection() {
-  const [notionApiKey, setNotionApiKey] = useState('');
+  return (
+    <div className="grid gap-6">
+      <GmailSetup />
+      {/* Add other service setup components here */}
+    </div>
+  );
+}
   const [isGmailConnected, setIsGmailConnected] = useState(false);
   const [isNotionConnected, setIsNotionConnected] = useState(false);
   const { toast } = useToast();
