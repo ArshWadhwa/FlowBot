@@ -1,0 +1,7 @@
+{
+  "runtime": "deno",
+  "cors": {
+    "origin": "*",
+    "allowed_headers": ["Content-Type", "Authorization"]
+  }
+}

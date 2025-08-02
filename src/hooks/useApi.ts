@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { logApiError } from '@/lib/utils';
 import { GoogleAuthService } from '@/services/authService';
 
-export function useApi() {
+export const useApi = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const googleAuthService = new GoogleAuthService();
@@ -101,7 +101,20 @@ export function useApi() {
   // Google OAuth
   const startGoogleOAuth = useCallback(async () => {
     try {
-      const authUrl = googleAuthService.getAuthUrl();
+      // Build the OAuth URL
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      const redirectUri = 'https://fifvgsxcflsfrwamfroy.supabase.co/functions/v1/google-oauth/callback';
+      
+      // Gmail scopes needed
+      const SCOPES = [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/gmail.send',
+        'https://www.googleapis.com/auth/gmail.modify'
+      ].join(' ');
+      
+      // Build the OAuth URL
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(SCOPES)}&access_type=offline&prompt=consent`;
+      
       return { url: authUrl };
     } catch (error) {
       console.error('Error starting Google OAuth:', error);

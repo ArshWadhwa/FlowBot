@@ -31,6 +31,11 @@ export function GmailSetup() {
   const handleConnect = async () => {
     setIsConnecting(true);
     try {
+      // Check if environment variables are loaded
+      if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+        throw new Error('Google Client ID is missing in environment variables');
+      }
+      
       const authUrl = await startGoogleOAuth();
       if (authUrl?.url) {
         // Open OAuth popup
@@ -75,12 +80,15 @@ export function GmailSetup() {
             }, 1000);
           }
         }, 1000);
+      } else {
+        throw new Error('Failed to get authorization URL');
       }
     } catch (error) {
+      console.error('OAuth Error:', error);
       setIsConnecting(false);
       toast({
         title: "Connection Error",
-        description: "Failed to start Gmail connection process.",
+        description: error.message || "Failed to start Gmail connection process.",
         variant: "destructive",
       });
     }

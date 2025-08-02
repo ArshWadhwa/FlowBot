@@ -2,15 +2,19 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://your-app.netlify.app";
+const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://yourappdomain.netlify.app";
+
+// These should be set as secrets in Supabase dashboard
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID") || "";
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET") || "";
-const REDIRECT_URI = Deno.env.get("REDIRECT_URI") || "https://fifvgsxcflsfrwamfroy.supabase.co/functions/v1/google-oauth/callback";
+const REDIRECT_URI = Deno.env.get("REDIRECT_URI") || 
+  "https://fifvgsxcflsfrwamfroy.supabase.co/functions/v1/google-oauth/callback";
 
 serve(async (req) => {
+  // Get the code from the request
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
-
+  
   if (!code) {
     return new Response(
       JSON.stringify({ error: "No authorization code provided" }),
@@ -23,45 +27,40 @@ serve(async (req) => {
 
   try {
     // Exchange code for tokens
-    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    const response = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: JSON.stringify({
+      body: new URLSearchParams({
+        code,
         client_id: GOOGLE_CLIENT_ID,
         client_secret: GOOGLE_CLIENT_SECRET,
-        code,
         redirect_uri: REDIRECT_URI,
         grant_type: "authorization_code",
       }),
     });
 
-    const tokenData = await tokenResponse.json();
-
-    if (!tokenResponse.ok) {
-      throw new Error(tokenData.error || "Failed to exchange code for tokens");
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error("Token exchange error:", data);
+      throw new Error(data.error_description || "Failed to exchange code");
     }
-
-    // Redirect back to frontend with tokens in fragment
-    // This is more secure than query params
-    const redirectUrl = new URL(FRONTEND_URL + "/auth/callback");
-    redirectUrl.hash = `access_token=${tokenData.access_token}&refresh_token=${tokenData.refresh_token}&expires_in=${tokenData.expires_in}`;
-
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: redirectUrl.toString(),
-      },
-    });
+    
+    // Redirect back to frontend with tokens in hash fragment
+    // Using hash fragment is more secure than query params for tokens
+    return Response.redirect(
+      `${FRONTEND_URL}/auth/callback#access_token=${data.access_token}&refresh_token=${data.refresh_token}&expires_in=${data.expires_in}`,
+      302
+    );
   } catch (error) {
     console.error("OAuth error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "Authentication failed" }),
-      { 
-        status: 500,
-        headers: { "Content-Type": "application/json" }
-      }
+    
+    // Redirect back with error
+    return Response.redirect(
+      `${FRONTEND_URL}/auth/callback#error=${encodeURIComponent(error.message || "Authentication failed")}`,
+      302
     );
   }
 });
