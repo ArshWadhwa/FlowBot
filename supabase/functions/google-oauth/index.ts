@@ -3,8 +3,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://yourappdomain.netlify.app";
-
-// These should be set as secrets in Supabase dashboard
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID") || "";
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET") || "";
 const REDIRECT_URI = Deno.env.get("REDIRECT_URI") || 
@@ -27,7 +25,7 @@ serve(async (req) => {
 
   try {
     // Exchange code for tokens
-    const response = await fetch("https://oauth2.googleapis.com/token", {
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -38,12 +36,12 @@ serve(async (req) => {
         client_secret: GOOGLE_CLIENT_SECRET,
         redirect_uri: REDIRECT_URI,
         grant_type: "authorization_code",
-      }),
+      }).toString(), // Convert to string
     });
 
-    const data = await response.json();
+    const data = await tokenResponse.json();
     
-    if (!response.ok) {
+    if (!tokenResponse.ok) {
       console.error("Token exchange error:", data);
       throw new Error(data.error_description || "Failed to exchange code");
     }

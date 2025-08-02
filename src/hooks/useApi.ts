@@ -18,14 +18,9 @@ export const useApi = () => {
   const connectService = async ({ service_type, config }: { service_type: string, config: any }) => {
     setLoading(true);
     try {
-      // In a real app, you would send this to your backend
-      console.log(`Connected ${service_type} with config:`, config);
-      
-      // For now, just store that the service is connected
-      localStorage.setItem(`${service_type}Connected`, 'true');
-      localStorage.setItem(`${service_type}Config`, JSON.stringify(config));
-      
-      return true;
+      console.log(`Connecting ${service_type} with config:`, config);
+      // In a real app, you'd call your backend API
+      return { success: true };
     } catch (error) {
       console.error(`Error connecting ${service_type}:`, error);
       throw error;
@@ -37,11 +32,11 @@ export const useApi = () => {
   const createAgent = async (agentData: any) => {
     setLoading(true);
     try {
-      // Simulate API call
-      console.log('Creating agent:', agentData);
+      console.log('Creating agent with data:', agentData);
+      // Simulate a successful API call
       return { id: 'agent-' + Date.now() };
     } catch (error) {
-      console.error('Error creating agent:', error);
+      console.error('Failed to create agent:', error);
       throw error;
     } finally {
       setLoading(false);

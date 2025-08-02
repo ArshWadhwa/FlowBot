@@ -1,17 +1,9 @@
 import axios from 'axios';
 
-// Debug environment variables
-console.log('VITE_GOOGLE_CLIENT_ID exists:', !!import.meta.env.VITE_GOOGLE_CLIENT_ID);
-
-// Access environment variables properly
+// Access environment variables from Vite
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI = import.meta.env.VITE_GOOGLE_REDIRECT_URI;
-
-// Fallback for development if env vars are missing
-if (!GOOGLE_CLIENT_ID) {
-  console.error('Google Client ID is missing! Check your .env.local file.');
-}
 
 // Scopes needed for Gmail access
 const GMAIL_SCOPES = [
@@ -24,10 +16,9 @@ const GMAIL_SCOPES = [
 export class GoogleAuthService {
   // Generate OAuth URL for user consent
   getAuthUrl() {
-    if (!GOOGLE_CLIENT_ID) {
-      throw new Error('Google Client ID is not configured');
+    if (!GOOGLE_CLIENT_ID || !REDIRECT_URI) {
+      throw new Error("Google OAuth client is not configured. Check your environment variables.");
     }
-    
     const scopes = encodeURIComponent(GMAIL_SCOPES.join(' '));
     return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scopes}&access_type=offline&prompt=consent`;
   }
@@ -74,3 +65,4 @@ export class GoogleAuthService {
     }
   }
 }
+       
